@@ -63,9 +63,9 @@ def test_main_refuses_unknown_arguments() -> None:
         main(["--nope"])
 
 
-def test_version_is_0_2_0() -> None:
-    assert on_disk()["version"] == "0.2.0"
-    assert 'version = "0.2.0"' in (Path(__file__).parent.parent / "pyproject.toml").read_text()
+def test_version_is_0_2_1() -> None:
+    assert on_disk()["version"] == "0.2.1"
+    assert 'version = "0.2.1"' in (Path(__file__).parent.parent / "pyproject.toml").read_text()
 
 
 def test_permissions_are_the_least_the_notifier_needs() -> None:

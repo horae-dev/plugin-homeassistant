@@ -42,6 +42,7 @@ def run(
     *,
     environ: dict[str, str] | None = None,
     network: list[str] | None = None,
+    network_local: list[str] | None = None,
     **params: Any,
 ) -> tuple[Any, Recorder]:
     answers = answers or {}
@@ -61,6 +62,7 @@ def run(
             "homeassistant.reminders",
             arguments,
             network=[HOST] if network is None else network,
+            network_local=network_local,
         )
     )
     return replayed, recorder
@@ -387,6 +389,42 @@ def test_the_host_must_be_approved() -> None:
     replayed, recorder = run([RULE], one("sensor.door_battery", "3"), network=["other.example.org"])
     assert replayed.error is not None
     assert "not approved" in replayed.error
+    assert recorder.requests == []
+
+
+def test_a_lan_server_is_read_through_a_network_local_grant() -> None:
+    answers = one("sensor.door_battery", "3")
+    replayed, recorder = run(
+        [RULE],
+        answers,
+        network=[],
+        network_local=["192.168.1.10:8123"],
+        url="http://192.168.1.10:8123",
+    )
+    assert replayed.error is None
+    assert str(recorder.requests[0].url).startswith("http://192.168.1.10:8123/api/states/")
+
+
+def test_a_lan_server_without_the_exact_grant_is_refused() -> None:
+    for grant in ([], ["192.168.1.10:8124"], ["192.168.1.11:8123"]):
+        replayed, recorder = run(
+            [RULE],
+            one("sensor.door_battery", "3"),
+            network_local=grant,
+            url="http://192.168.1.10:8123",
+            allow_http=True,
+        )
+        assert replayed.error is not None
+        assert "not approved" in replayed.error
+        assert recorder.requests == []
+
+
+def test_http_on_a_public_host_is_refused() -> None:
+    replayed, recorder = run(
+        [RULE], one("sensor.door_battery", "3"), url=f"http://{HOST}", allow_http=True
+    )
+    assert replayed.error is not None
+    assert "https is required" in replayed.error
     assert recorder.requests == []
 
 

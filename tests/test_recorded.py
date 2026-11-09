@@ -50,7 +50,11 @@ def replay(case: dict[str, Any]) -> dict[str, Any]:
         "actions": case.get("actions", []),
     }
     result = anyio.run(
-        partial(operation, network=case.get("network", [HOST])),
+        partial(
+            operation,
+            network=case.get("network", [HOST]),
+            network_local=case.get("network_local"),
+        ),
         plugin,
         f"{TOOL.split('.')[0]}.apply",
         arguments,

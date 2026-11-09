@@ -2,7 +2,7 @@
 
 # plugin-homeassistant
 
-Horae plugin: Home Assistant notifications and household reminders. Version 0.2.0.
+Horae plugin: Home Assistant notifications and household reminders. Version 0.2.1 (requires `horae-sdk` 0.6).
 
 ## What it does
 
@@ -18,7 +18,7 @@ Two tools: `homeassistant.push` (a notifier, below) and `homeassistant.reminders
     - homeassistant.push:
         url: https://ha.example.org          # required: the HA base URL (no path)
         service: mobile_app_pixel            # required: notify.<service>, [a-z0-9_]+
-        allow_http: false                    # true: accept an http:// url (LAN installs)
+        allow_http: false                    # only for a core older than horae-sdk 0.6
         priority: normal                     # min | low | normal (default) | high | critical
         link_prefix: https://notes.example.org/daily/   # links routed here (core)
         actions: view                        # view (default): buttons open their page | off
@@ -28,9 +28,9 @@ Every key except `url` and `service` is optional; an unknown key or an invalid v
 
 | Parameter | Meaning |
 |---|---|
-| `url` | `https://<host>[:port]`, no path, query, fragment or user info. The host is a lowercase DNS name (`homeassistant.local` works; IP literals and `localhost` are refused, as the lock cannot approve them). |
+| `url` | `https://<host>[:port]`, no path, query, fragment or user info. The host is a lowercase DNS name (`homeassistant.local` works), or a LAN address: a canonical IPv4 literal (loopback, 10/8, 172.16/12, 192.168/16, 169.254/16) or a bracketed IPv6 one (`[::1]`, ULA, link-local). A LAN address or a `.local`, `.lan`, `.internal` or `.home.arpa` name is approved as `host:port` under `network_local` (below). Public IP literals, cloud metadata addresses and names, and `localhost` are refused. |
 | `service` | The part after `notify.`: `mobile_app_pixel` for `notify.mobile_app_pixel`. Must match `[a-z0-9_]+` (1 to 64), so the plugin cannot reach any other HA service. |
-| `allow_http` | `false` (default): only `https://`. `true`: an `http://` URL is accepted too. The token then travels in clear on that network: use it for a LAN instance only. |
+| `allow_http` | `false` (default). Only for a core older than horae-sdk 0.6, which sends no approved list: `true` then accepts an `http://` URL. A core that sends the list ignores it: `http://` is approved by an exact `network_local` grant and never for a public host. The token travels in clear on that network. |
 | `priority` | `min`, `low`, `normal`, `high`, `critical`. See below. |
 | `link_prefix` | The core routes a `link` only under it; the plugin checks the link against it again. `https://` or `obsidian://`. |
 | `actions` | `view` (default) sends the core's minted buttons; `off` sends none. |
@@ -52,7 +52,30 @@ plugins:
       intents: [notify.push, task.create]
 ```
 
-`plugin.yaml` declares no host: yours is your own, so it is approved **per instance** in `horae.lock`. The core sends the approved `permissions.network` with every apply and the plugin refuses (`config_invalid`, naming the host, before reading the token or contacting anything) a `url` whose host is not in it; an `http://` URL is matched by its host name too, and any port is accepted. An older core sends no list, and the plugin then trusts the configured `url`.
+`plugin.yaml` declares no host: yours is your own, so it is approved **per instance** in `horae.lock`. The core sends the approved `permissions.network` with every apply and the plugin refuses (`config_invalid`, naming the host, before reading the token or contacting anything) a `url` whose host is not in it; a public `https` host is matched by its name, any port. `http://` on a public host is refused. An older core sends no list, and the plugin then trusts the configured `url` (`http://` still needs `allow_http: true`).
+
+#### A Home Assistant on your LAN (`network_local`)
+
+For `homeassistant.local:8123` or `192.168.1.10:8123`, approve the exact `host:port` under `network_local` (horae-sdk 0.6, decision 66) instead of `network`. That also allows plain `http://` on exactly that host and port, with no `allow_http`:
+
+```yaml
+# horae.lock (excerpt)
+plugins:
+  homeassistant:
+    permissions:
+      network_local: [homeassistant.local:8123]   # or 192.168.1.10:8123
+      secrets: [HA_TOKEN]
+      intents: [notify.push, task.create]
+```
+
+```yaml
+- notify:
+    - homeassistant.push:
+        url: http://homeassistant.local:8123
+        service: mobile_app_pixel
+```
+
+The plugin asks `host_allowed(url)` with the explicit port (no port means 80 or 443): `False` (another port, another spelling, a public name, no grant) refuses before the token is read or anything is sent; `None` (an older core) falls back to the configuration. The notify-only and read-only path guards are unchanged.
 
 ### What reaches the phone
 
@@ -92,7 +115,7 @@ The target `<url>/notify.<service>` and `details`: `delivery: "sent"`, `priority
 - collect:
     - homeassistant.reminders:
         url: https://ha.example.org          # required: the HA base URL (as for the notifier)
-        allow_http: false                    # true: accept an http:// url (LAN installs)
+        allow_http: false                    # only for a core older than horae-sdk 0.6
         max_matches: 20                      # per glob rule, 1 to 50
         max_items: 50                        # intents per call, 1 to 200
         timezone: Europe/Paris               # the run's day (default UTC); `today: YYYY-MM-DD` pins it
@@ -159,14 +182,14 @@ Any unknown key or invalid value fails the call (a tool error naming the rule an
 | intents | `notify.push` | applied by the notifier; proposed by the reminders source |
 | intents | `task.create` | proposed by the reminders source |
 | secrets | `HA_TOKEN` | the long-lived access token (the same for both tools), sent as a Bearer header to the configured host only |
-| network | none in the manifest; your HA host approved in `horae.lock` | see above |
+| network | none in the manifest; your HA host approved in `horae.lock` (`network`, or `network_local` for a LAN host) | see above |
 | paths | none | |
 
 ## Install
 
 Until M4's `horae plugin add`, pin the commit in `horae.lock` with the permissions above, install the package into an interpreter, and set `runtime.command` to that absolute interpreter (`["/opt/horae-plugins/homeassistant/bin/python", "-m", "horae_homeassistant"]`, horae-sdk README, "The command").
 
-## Not in 0.2.0
+## Not in 0.2.1
 
 Reading a to-do list's items or a calendar's event list (HA offers them only through services or the WebSocket API, which this plugin does not use), quiet hours and once-a-day reminder state (the core's `key` dedupe covers repeated pushes), event-firing companion actions, notification channels, images and TTS. See the [CHANGELOG](CHANGELOG.md).
 
