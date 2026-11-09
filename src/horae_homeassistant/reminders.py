@@ -76,7 +76,7 @@ from horae_homeassistant.http import (
     ReadError,
     ReadSession,
 )
-from horae_homeassistant.settings import TOKEN_SECRET, Server, parse_server
+from horae_homeassistant.settings import TOKEN_SECRET, Server, approval, parse_server
 
 NAME = "homeassistant"
 TOOL = f"{NAME}.reminders"
@@ -509,8 +509,9 @@ def build_source(
             raise _bad("max_items", f"is 1 to {MAX_ITEMS}")
         parsed = parse_rules(rules, max_matches)
         day = run_day(today, timezone, clock)
-        if call.host_allowed(f"https://{server.host}") is False:
-            raise _bad("url", f"host {server.host} is not approved in horae.lock")
+        why = approval(call.host_allowed, server)
+        if why is not None:
+            raise _bad("url", why)
         env = os.environ if environ is None else environ
         token = env.get(TOKEN_SECRET)
         if not token:

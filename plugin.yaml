@@ -2,7 +2,7 @@
 # tests/test_manifest.py checks it is what the SDK writes. When installing, pin runtime.command
 # to an absolute interpreter that has this package (horae-sdk README, "The command").
 name: homeassistant
-version: 0.2.0
+version: 0.2.1
 horae: '>=0,<0.2'
 description: Home Assistant notifications and household reminders.
 license: Apache-2.0

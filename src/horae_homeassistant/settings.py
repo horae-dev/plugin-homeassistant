@@ -8,7 +8,7 @@ A pipeline's `notify` entry configures the notifier:
     - homeassistant.push:
         url: https://ha.example.org        # required: the HA base URL, no path
         service: mobile_app_pixel          # required: notify.<service>, [a-z0-9_]+
-        allow_http: false                  # true: accept an http:// url (LAN installs)
+        allow_http: false                  # only for a core older than horae-sdk 0.6 (below)
         priority: normal                   # min | low | normal (default) | high | critical
         link_prefix: https://notes.example.org/daily/   # read by the core
         actions: view                      # view (default): minted buttons open their page | off
@@ -23,13 +23,21 @@ slash, dash, space, case or line break, so the request path can only ever be
 `/api/services/notify/<service>`; no other HA domain (`light`, `script`, `homeassistant`...)
 can be reached through this plugin.
 
-**URL.** `https://<host>[:port]` with no path, query, fragment or user info; the host is a
-lowercase DNS name (`homeassistant.local` and single-label names work), as the lock's
-`permissions.network` writes it (no IP literal, no `localhost`). `http://` is refused unless the
-operator sets `allow_http: true`: the token then travels in clear on that network.
+**URL.** `https://<host>[:port]` with no path, query, fragment or user info. The host is a
+lowercase DNS name (`homeassistant.local` and single-label names work, as the lock's
+`permissions.network` writes it), or a LAN address: a canonical IPv4 literal in 127.0.0.0/8,
+10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 or 169.254.0.0/16, or a bracketed IPv6 literal (`::1`,
+fc00::/7, fe80::/10). Cloud metadata addresses and names, a public IP literal and `localhost`
+are refused. A LAN address or a `.local`, `.lan`, `.internal` or `.home.arpa` name is meant to be
+approved as `host:port` in `permissions.network_local` (horae-sdk 0.6, decision 66), which also
+allows plain `http://` on exactly that host and port (`approval`). A core older than 0.6 sends
+no list: `http://` then needs the operator's `allow_http: true` (the token travels in clear on
+that network). `http://` on a public host is never approved by a core that sends a list.
 """
 
+import ipaddress
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Literal
 from urllib.parse import urlsplit
@@ -48,6 +56,45 @@ _SERVICE = re.compile(r"[a-z0-9_]{1,64}")
 _HOST = re.compile(r"([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z]([a-z0-9-]{0,61}[a-z0-9])?")
 _LOCALHOST = re.compile(r"(^|\.)localhost$")
 _UNSAFE_ESCAPES = ("%2e", "%2f", "%5c", "%25")
+_LOCAL_SUFFIXES = (".local", ".lan", ".internal", ".home.arpa")
+_METADATA_LABELS = frozenset({"metadata", "instance-data"})
+_METADATA_ADDRESSES = frozenset(
+    ipaddress.ip_address(a)
+    for a in ("169.254.169.254", "169.254.170.2", "169.254.170.23", "fd00:ec2::254", "fd00:ec2::23")
+)
+_LAN_NETWORKS = tuple(
+    ipaddress.ip_network(n)
+    for n in (
+        "127.0.0.0/8",
+        "10.0.0.0/8",
+        "172.16.0.0/12",
+        "192.168.0.0/16",
+        "169.254.0.0/16",
+        "::1/128",
+        "fc00::/7",
+        "fe80::/10",
+    )
+)
+
+
+def _lan_address(host: str) -> bool | None:
+    """`True` for an allowed LAN IP literal in canonical form, `False` for any other IP
+    literal (public, metadata, non-canonical), `None` when `host` is not an IP literal."""
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        return None
+    if str(address) != host or address in _METADATA_ADDRESSES:
+        return False
+    if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped is not None:
+        return False
+    return any(
+        address in network for network in _LAN_NETWORKS if network.version == address.version
+    )
+
+
+def _local_name(host: str) -> bool:
+    return any(host.endswith(suffix) and len(host) > len(suffix) for suffix in _LOCAL_SUFFIXES)
 
 
 def _invalid(name: str, why: str, entry: str = "homeassistant.push") -> SinkError:
@@ -62,6 +109,11 @@ class Server:
     """`scheme://host[:port]`, no trailing slash."""
     scheme: Literal["https", "http"]
     host: str
+    allow_http: bool
+    """The operator's opt-in, honoured only when the core sends no approved list."""
+    local: bool
+    """A LAN address or a `.local`/`.lan`/`.internal`/`.home.arpa` name: asked of the lock with
+    its explicit port, as a `network_local` endpoint."""
 
 
 @dataclass(frozen=True)
@@ -86,13 +138,31 @@ def parse_server(url: object, allow_http: bool, *, name: str = "homeassistant.pu
     `SinkError("config_invalid")` (the reminders source maps it to its own error)."""
     if not isinstance(allow_http, bool):
         raise _invalid("allow_http", "must be true or false", name)
-    base, scheme, host = _base(url, allow_http, name)
-    return Server(base, scheme, host)
+    base, scheme, host, local = _base(url, name)
+    return Server(base, scheme, host, allow_http, local)
+
+
+def approval(allowed: Callable[[str], bool | None], server: Server) -> str | None:
+    """Why `server` may not be contacted, or `None` when it may (`allowed` is the core's
+    `host_allowed`). A LAN address or name, and every `http://` URL, is asked with its explicit
+    port, so only an exact `network_local` grant approves it; a public `https` host is asked as
+    before (any port). `False` refuses. `None` (a core older than horae-sdk 0.6) leaves the
+    configuration in charge, `http://` still needing `allow_http: true`."""
+    url = server.base if server.local or server.scheme == "http" else f"https://{server.host}"
+    verdict = allowed(url)
+    if verdict is False:
+        if server.scheme == "http" and not server.local:
+            return f"host {server.host} is not approved for http (https is required here)"
+        grant = "permissions.network_local" if server.local else "permissions.network"
+        return f"host {server.host} is not approved in horae.lock ({grant})"
+    if verdict is None and server.scheme == "http" and not server.allow_http:
+        return "is http://; set allow_http: true to accept it (an older core, LAN installs)"
+    return None
 
 
 def _base(
-    value: object, allow_http: bool, name: str = "homeassistant.push"
-) -> tuple[str, Literal["https", "http"], str]:
+    value: object, name: str = "homeassistant.push"
+) -> tuple[str, Literal["https", "http"], str, bool]:
     if not isinstance(value, str) or len(value) > 300:
         raise _invalid("url", "must be an https:// URL", name)
     if not value.isascii() or any(ch <= " " or ch == "\x7f" for ch in value):
@@ -102,29 +172,33 @@ def _base(
         port = parts.port
     except ValueError:
         raise _invalid("url", "is not a valid URL", name) from None
-    if parts.scheme == "http":
-        if not allow_http:
-            raise _invalid(
-                "url", "is http://; set allow_http: true to accept it (LAN installs)", name
-            )
-    elif parts.scheme != "https":
-        raise _invalid("url", "must be https:// (or http:// with allow_http: true)", name)
+    if parts.scheme not in ("http", "https"):
+        raise _invalid("url", "must be https:// (or http:// on a network_local host)", name)
     host = parts.hostname or ""
     if "@" in parts.netloc or parts.query or parts.fragment or "#" in value or "?" in value:
         raise _invalid("url", "has user info, a query or a fragment", name)
     if parts.path not in ("", "/"):
         raise _invalid("url", "has a path (give the base URL only)", name)
-    if parts.netloc != parts.netloc.lower() or not _HOST.fullmatch(host):
-        raise _invalid("url", "host must be a lowercase DNS name (no IP literal)", name)
-    if _LOCALHOST.search(host) or len(host) > 253:
-        raise _invalid("url", "host must not be localhost", name)
+    lan = _lan_address(host)
+    if lan is False:
+        raise _invalid("url", "host is an IP address that is not a canonical LAN address", name)
+    local = lan is True
+    if lan is None:
+        if parts.netloc != parts.netloc.lower() or not _HOST.fullmatch(host):
+            raise _invalid("url", "host must be a lowercase DNS name or a LAN address", name)
+        if _LOCALHOST.search(host) or len(host) > 253:
+            raise _invalid("url", "host must not be localhost", name)
+        local = _local_name(host)
+        if local and host.split(".")[0] in _METADATA_LABELS:
+            raise _invalid("url", "host is a cloud metadata name", name)
     if port is not None and not 1 <= port <= 65535:
         raise _invalid("url", "has an invalid port", name)
-    netloc = host if port is None else f"{host}:{port}"
+    shown = f"[{host}]" if ":" in host else host
+    netloc = shown if port is None else f"{shown}:{port}"
     if parts.netloc != netloc:
         raise _invalid("url", "has an invalid port", name)
     scheme: Literal["https", "http"] = "https" if parts.scheme == "https" else "http"
-    return f"{scheme}://{netloc}", scheme, host
+    return f"{scheme}://{netloc}", scheme, host, local
 
 
 def clean_path(path: str, *, prefix: bool) -> bool:
@@ -176,7 +250,7 @@ def parse(params: dict[str, Any]) -> Settings:
         raise _invalid("allow_http", "must be true or false")
     if "url" not in params:
         raise _invalid("url", "required (the Home Assistant base URL)")
-    base, scheme, host = _base(params["url"], allow_http)
+    base, scheme, host, local = _base(params["url"])
     service = params.get("service")
     if not isinstance(service, str) or not _SERVICE.fullmatch(service):
         raise _invalid("service", "required, 1 to 64 of a-z 0-9 _ (the part after notify.)")
@@ -195,6 +269,8 @@ def parse(params: dict[str, Any]) -> Settings:
         base=base,
         scheme=scheme,
         host=host,
+        allow_http=allow_http,
+        local=local,
         service=service,
         priority=priority,
         link_prefix=prefix,

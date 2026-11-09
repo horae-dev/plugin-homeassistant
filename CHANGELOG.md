@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.1
+
+- A Home Assistant on the LAN is approved through `permissions.network_local` (horae-sdk 0.6,
+  decision 66): `homeassistant.local:8123`, `192.168.1.10:8123`. The `url` may now be a canonical
+  LAN IP literal (IPv4, or bracketed IPv6) or a `.local`, `.lan`, `.internal` or `.home.arpa`
+  name; public IP literals, metadata addresses and names, and `localhost` stay refused.
+- `http://` is allowed only on an exact `network_local` grant (host and port, asked with the
+  explicit port). `False` refuses before the token is read; `None` (an older core) falls back to
+  the configuration, where `http://` still needs `allow_http: true`. `https` stays required for
+  public hosts. Applies to `homeassistant.push` and `homeassistant.reminders`; the notify-only
+  and read-only path guards are unchanged.
+- `allow_http` is no longer rejected at parse time; the approval decides.
+- Requires `horae-sdk>=0.6,<0.7`.
+
 ## 0.2.0
 
 - New source `homeassistant.reminders`: reads household state from Home Assistant and proposes

@@ -19,7 +19,11 @@ PARAMS: dict[str, Any] = {"url": URL, "service": "mobile_app_pixel"}
 
 
 def request(
-    params: dict[str, Any] | None = None, *, hosts: tuple[str, ...] | None = (HOST,), **extra: Any
+    params: dict[str, Any] | None = None,
+    *,
+    hosts: tuple[str, ...] | None = (HOST,),
+    local: tuple[str, ...] = (),
+    **extra: Any,
 ) -> ApplyRequest:
     return ApplyRequest(
         Paths(),
@@ -27,7 +31,7 @@ def request(
         tool="homeassistant.push",
         params=PARAMS if params is None else params,
         dedupe_key="a" * 64,
-        network=Network(hosts),
+        network=Network(hosts, local),
         **extra,
     )
 
@@ -81,13 +85,66 @@ def test_the_caller_itself_refuses_a_url_outside_notify() -> None:
     assert recorder.requests == []
 
 
-def test_http_is_refused_without_opt_in_and_allowed_with_it() -> None:
+def test_http_needs_a_local_grant_or_the_opt_in_of_an_older_core() -> None:
     recorder = Recorder()
-    params = {**PARAMS, "url": f"http://{HOST}:8123"}
-    assert failure(recorder, request(params)).kind == "config_invalid"
+    params = {**PARAMS, "url": "http://homeassistant.local:8123"}
+    # an older core (no list): the operator's opt-in is the approval
+    assert failure(recorder, request(params, hosts=None)).kind == "config_invalid"
     assert recorder.requests == []
-    apply(recorder, request({**params, "allow_http": True}))
-    assert str(recorder.requests[0].url).startswith(f"http://{HOST}:8123/api/services/notify/")
+    apply(recorder, request({**params, "allow_http": True}, hosts=None))
+    assert str(recorder.requests[0].url).startswith(
+        "http://homeassistant.local:8123/api/services/notify/"
+    )
+
+
+@pytest.mark.parametrize(
+    "url", ["http://homeassistant.local:8123", "http://192.168.1.10:8123", "http://[::1]:8123"]
+)
+def test_a_network_local_grant_allows_http_without_the_opt_in(url: str) -> None:
+    recorder = Recorder()
+    entry = url.removeprefix("http://")
+    apply(recorder, request({**PARAMS, "url": url}, hosts=(), local=(entry,)))
+    assert str(recorder.requests[0].url).startswith(f"{url}/api/services/notify/")
+
+
+def test_a_local_grant_also_allows_https_on_the_same_endpoint() -> None:
+    recorder = Recorder()
+    params = {**PARAMS, "url": "https://192.168.1.10:8123"}
+    apply(recorder, request(params, hosts=(), local=("192.168.1.10:8123",)))
+    assert len(recorder.requests) == 1
+
+
+@pytest.mark.parametrize(
+    ("url", "local"),
+    [
+        ("http://homeassistant.local:8124", ("homeassistant.local:8123",)),  # another port
+        ("http://homeassistant.local", ("homeassistant.local:8123",)),  # default port 80
+        ("http://192.168.1.11:8123", ("192.168.1.10:8123",)),  # another address
+        ("http://ha.lan:8123", ()),  # no grant
+    ],
+)
+def test_a_local_url_without_an_exact_grant_is_refused(url: str, local: tuple[str, ...]) -> None:
+    recorder = Recorder()
+    req = request({**PARAMS, "url": url, "allow_http": True}, hosts=(), local=local)
+    assert failure(recorder, req).kind == "config_invalid"
+    assert recorder.requests == []
+
+
+def test_http_on_a_public_host_is_refused_even_when_approved_for_https() -> None:
+    recorder = Recorder()
+    params = {**PARAMS, "url": f"http://{HOST}", "allow_http": True}
+    error = failure(recorder, request(params, local=("192.168.1.10:8123",)))
+    assert error.kind == "config_invalid"
+    assert "https is required" in error.message
+    assert recorder.requests == []
+
+
+def test_a_local_grant_does_not_approve_a_public_name() -> None:
+    recorder = Recorder()
+    params = {**PARAMS, "url": "http://homeassistant.local.evil.example.org:8123"}
+    req = request({**params, "allow_http": True}, hosts=(), local=("homeassistant.local:8123",))
+    assert failure(recorder, req).kind == "config_invalid"
+    assert recorder.requests == []
 
 
 def test_unapproved_host_refuses_before_anything_is_sent() -> None:

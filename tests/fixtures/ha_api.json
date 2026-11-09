@@ -157,6 +157,92 @@
     }
   },
   {
+    "name": "lan-http-network-local",
+    "params": {
+      "url": "http://homeassistant.local:8123",
+      "service": "mobile_app_pixel"
+    },
+    "intent": {
+      "type": "notify.push",
+      "body": "hello"
+    },
+    "response": {
+      "status": 200,
+      "body": []
+    },
+    "expect": {
+      "request": {
+        "url": "http://homeassistant.local:8123/api/services/notify/mobile_app_pixel",
+        "json": {
+          "message": "hello",
+          "data": {
+            "push": {
+              "interruption-level": "active"
+            },
+            "tag": "60e05bd1b195af2f94112fa7197a5c88"
+          }
+        }
+      },
+      "result": {
+        "target": "http://homeassistant.local:8123/notify.mobile_app_pixel",
+        "after_sha256": null,
+        "details": {
+          "delivery": "sent",
+          "priority": "normal"
+        }
+      }
+    },
+    "network": [
+      "homeassistant.local"
+    ],
+    "network_local": [
+      "homeassistant.local:8123"
+    ]
+  },
+  {
+    "name": "lan-ip-network-local",
+    "params": {
+      "url": "http://192.168.1.10:8123",
+      "service": "mobile_app_pixel"
+    },
+    "intent": {
+      "type": "notify.push",
+      "body": "hello"
+    },
+    "response": {
+      "status": 200,
+      "body": []
+    },
+    "expect": {
+      "request": {
+        "url": "http://192.168.1.10:8123/api/services/notify/mobile_app_pixel",
+        "json": {
+          "message": "hello",
+          "data": {
+            "push": {
+              "interruption-level": "active"
+            },
+            "tag": "60e05bd1b195af2f94112fa7197a5c88"
+          }
+        }
+      },
+      "result": {
+        "target": "http://192.168.1.10:8123/notify.mobile_app_pixel",
+        "after_sha256": null,
+        "details": {
+          "delivery": "sent",
+          "priority": "normal"
+        }
+      }
+    },
+    "network": [
+      "homeassistant.local"
+    ],
+    "network_local": [
+      "192.168.1.10:8123"
+    ]
+  },
+  {
     "name": "lan-http-opt-in",
     "params": {
       "url": "http://homeassistant.local:8123",
@@ -193,9 +279,7 @@
         }
       }
     },
-    "network": [
-      "homeassistant.local"
-    ]
+    "network": null
   },
   {
     "name": "bad-token",

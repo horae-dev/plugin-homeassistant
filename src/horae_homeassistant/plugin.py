@@ -13,10 +13,12 @@ duplicates.
 
 **Network and auth.** `POST <url>/api/services/notify/<service>` with the long-lived access token
 from the `HA_TOKEN` secret as a Bearer header (`horae_homeassistant.http`): https by default,
-`http://` only with `allow_http: true`; the host is checked against the network permissions
-approved in `horae.lock` (`ApplyRequest.host_allowed`: `False` refuses, `None` (an older core)
-falls back to the configuration); no redirects; timeouts; the token and HA's answer are never
-logged or echoed. The sink can reach no HA service other than `notify.*`.
+`http://` only on a `network_local` host (or, with an older core, `allow_http: true`); the host
+is checked against the network permissions approved in `horae.lock`
+(`ApplyRequest.host_allowed`: `False` refuses, `None` (an older core) falls back to the
+configuration); a LAN address or name, and plain `http://`, need an exact
+`network_local` grant (`host:port`, horae-sdk 0.6); no redirects; timeouts; the token and HA's
+answer are never logged or echoed. The sink can reach no HA service other than `notify.*`.
 
 **What `apply` returns** (`Applied`): the target `<url>/notify.<service>` and `details`:
 `delivery: "sent"`, `priority`, `actions` (the number of buttons sent, never their URLs) and
@@ -25,8 +27,8 @@ proposer's text, and the token is never in it.
 
 **Not implemented** (left out on purpose): quiet hours and once-a-day reminder state (the core's
 `key` dedupe covers repeats), the companion apps' event-firing actions, notification channels,
-images and TTS, and `http://` LAN-only address checks (the operator's `allow_http` opt-in is the
-control).
+images and TTS, and resolving a local name to check its address (the grant and, from M5, the
+egress proxy are the control).
 """
 
 import os
@@ -39,11 +41,11 @@ from horae_homeassistant.http import Caller, Reader
 from horae_homeassistant.message import is_obsidian, payload
 from horae_homeassistant.reminders import TOOL as REMINDERS_TOOL
 from horae_homeassistant.reminders import build_source
-from horae_homeassistant.settings import TOKEN_SECRET, Settings, parse
+from horae_homeassistant.settings import TOKEN_SECRET, Settings, approval, parse
 
 NAME = "homeassistant"
 """The plugin's name, also the namespace of its refs (`homeassistant.push`)."""
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 TOOL = f"{NAME}.push"
 COMMAND = ["python3", "-m", "horae_homeassistant"]
 """`runtime.command` of `plugin.yaml`. When installing, pin an absolute interpreter that has
@@ -53,7 +55,9 @@ PERMISSIONS = Permissions(
 )
 """`notify.push` (applied, never proposed) and the access token. There is no default host: the
 operator's HA host is approved in `horae.lock` (README, "Setup"); `apply` refuses a host that
-is not in the approved list the core sends (horae-sdk 0.5)."""
+is not in the approved list the core sends (horae-sdk 0.5); a LAN Home Assistant
+(`homeassistant.local:8123`, `192.168.1.10:8123`) is approved under `network_local` instead
+(horae-sdk 0.6)."""
 _TOKEN_CHARS = frozenset(chr(code) for code in range(0x21, 0x7F))
 
 
@@ -82,15 +86,15 @@ class HomeAssistantNotifier(Notifier):
 
     @staticmethod
     def _check_approved(request: ApplyRequest, settings: Settings) -> None:
-        """Refuses a host `horae.lock` does not approve, before anything is read or sent. The
-        lock matches `https` URLs only, so the check is on the host in its https form (it also
-        covers the `http://` form of that server). `None` is an older core that sent no list:
-        the configured URL stays trusted pipeline configuration."""
-        if request.host_allowed(f"https://{settings.host}") is False:
+        """Refuses a server `horae.lock` does not approve, before anything is read or sent
+        (`settings.approval`): a public https host from `permissions.network`, a LAN address or
+        name, and any `http://` URL only from an exact `permissions.network_local` grant.
+        `None` is an older core that sent no list: the configured URL stays trusted pipeline
+        configuration (`http://` still needs `allow_http`)."""
+        why = approval(request.host_allowed, settings)
+        if why is not None:
             raise SinkError(
-                "config_invalid",
-                f"homeassistant.push parameter url: host {settings.host} is not approved in "
-                "horae.lock (permissions.network); nothing was sent",
+                "config_invalid", f"homeassistant.push parameter url: {why}; nothing was sent"
             )
 
     async def apply(self, request: ApplyRequest) -> Applied:
