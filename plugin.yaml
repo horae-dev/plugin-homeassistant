@@ -1,0 +1,23 @@
+# Written by `uv run python -m horae_homeassistant --manifest > plugin.yaml`;
+# tests/test_manifest.py checks it is what the SDK writes. When installing, pin runtime.command
+# to an absolute interpreter that has this package (horae-sdk README, "The command").
+name: homeassistant
+version: 0.1.0
+horae: '>=0,<0.2'
+description: Sends Horae notifications through Home Assistant notify services.
+license: Apache-2.0
+homepage: https://github.com/horae-dev/plugin-homeassistant
+provides:
+  notifiers:
+  - homeassistant.push
+permissions:
+  secrets:
+  - HA_TOKEN
+  intents:
+  - notify.push
+runtime:
+  protocol: mcp-stdio
+  command:
+  - python3
+  - -m
+  - horae_homeassistant

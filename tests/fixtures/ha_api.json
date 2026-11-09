@@ -1,0 +1,298 @@
+[
+  {
+    "name": "plain",
+    "params": {
+      "url": "https://ha.example.org",
+      "service": "mobile_app_pixel"
+    },
+    "intent": {
+      "type": "notify.push",
+      "title": "Today",
+      "body": "3 tasks due, 1 overdue"
+    },
+    "response": {
+      "status": 200,
+      "body": []
+    },
+    "expect": {
+      "request": {
+        "url": "https://ha.example.org/api/services/notify/mobile_app_pixel",
+        "json": {
+          "message": "3 tasks due, 1 overdue",
+          "data": {
+            "push": {
+              "interruption-level": "active"
+            },
+            "tag": "60e05bd1b195af2f94112fa7197a5c88"
+          },
+          "title": "Today"
+        }
+      },
+      "result": {
+        "target": "https://ha.example.org/notify.mobile_app_pixel",
+        "after_sha256": null,
+        "details": {
+          "delivery": "sent",
+          "priority": "normal"
+        }
+      }
+    }
+  },
+  {
+    "name": "link-and-high-priority",
+    "params": {
+      "url": "https://ha.example.org",
+      "service": "mobile_app_pixel",
+      "priority": "high",
+      "link_prefix": "https://notes.example.org/daily/"
+    },
+    "intent": {
+      "type": "notify.push",
+      "title": "Reminder",
+      "body": "Take the bins out",
+      "link": "https://notes.example.org/daily/2026-10-29"
+    },
+    "response": {
+      "status": 200,
+      "body": []
+    },
+    "expect": {
+      "request": {
+        "url": "https://ha.example.org/api/services/notify/mobile_app_pixel",
+        "json": {
+          "message": "Take the bins out",
+          "data": {
+            "priority": "high",
+            "ttl": 0,
+            "push": {
+              "interruption-level": "time-sensitive"
+            },
+            "url": "https://notes.example.org/daily/2026-10-29",
+            "clickAction": "https://notes.example.org/daily/2026-10-29",
+            "tag": "60e05bd1b195af2f94112fa7197a5c88"
+          },
+          "title": "Reminder"
+        }
+      },
+      "result": {
+        "target": "https://ha.example.org/notify.mobile_app_pixel",
+        "after_sha256": null,
+        "details": {
+          "delivery": "sent",
+          "priority": "high"
+        }
+      }
+    }
+  },
+  {
+    "name": "buttons",
+    "params": {
+      "url": "https://ha.example.org",
+      "service": "mobile_app_pixel",
+      "priority": "critical"
+    },
+    "intent": {
+      "type": "notify.push",
+      "body": "Water leak at the cellar"
+    },
+    "actions": [
+      {
+        "action": "http",
+        "label": "Done",
+        "url": "https://horae.example.org/act/synthetic-button-1",
+        "method": "POST"
+      },
+      {
+        "action": "http",
+        "label": "Snooze",
+        "url": "https://horae.example.org/act/synthetic-button-2",
+        "method": "POST"
+      }
+    ],
+    "response": {
+      "status": 200,
+      "body": []
+    },
+    "expect": {
+      "request": {
+        "url": "https://ha.example.org/api/services/notify/mobile_app_pixel",
+        "json": {
+          "message": "Water leak at the cellar",
+          "data": {
+            "priority": "high",
+            "ttl": 0,
+            "push": {
+              "interruption-level": "critical",
+              "sound": {
+                "name": "default",
+                "critical": 1,
+                "volume": 1.0
+              }
+            },
+            "actions": [
+              {
+                "action": "URI",
+                "title": "Done",
+                "uri": "https://horae.example.org/act/synthetic-button-1"
+              },
+              {
+                "action": "URI",
+                "title": "Snooze",
+                "uri": "https://horae.example.org/act/synthetic-button-2"
+              }
+            ],
+            "tag": "60e05bd1b195af2f94112fa7197a5c88"
+          }
+        }
+      },
+      "result": {
+        "target": "https://ha.example.org/notify.mobile_app_pixel",
+        "after_sha256": null,
+        "details": {
+          "delivery": "sent",
+          "priority": "critical",
+          "actions": 2
+        }
+      }
+    }
+  },
+  {
+    "name": "lan-http-opt-in",
+    "params": {
+      "url": "http://homeassistant.local:8123",
+      "service": "mobile_app_pixel",
+      "allow_http": true
+    },
+    "intent": {
+      "type": "notify.push",
+      "body": "hello"
+    },
+    "response": {
+      "status": 200,
+      "body": []
+    },
+    "expect": {
+      "request": {
+        "url": "http://homeassistant.local:8123/api/services/notify/mobile_app_pixel",
+        "json": {
+          "message": "hello",
+          "data": {
+            "push": {
+              "interruption-level": "active"
+            },
+            "tag": "60e05bd1b195af2f94112fa7197a5c88"
+          }
+        }
+      },
+      "result": {
+        "target": "http://homeassistant.local:8123/notify.mobile_app_pixel",
+        "after_sha256": null,
+        "details": {
+          "delivery": "sent",
+          "priority": "normal"
+        }
+      }
+    },
+    "network": [
+      "homeassistant.local"
+    ]
+  },
+  {
+    "name": "bad-token",
+    "params": {
+      "url": "https://ha.example.org",
+      "service": "mobile_app_pixel"
+    },
+    "intent": {
+      "type": "notify.push",
+      "body": "hello"
+    },
+    "response": {
+      "status": 401,
+      "body": {
+        "message": "synthetic: Unauthorized"
+      }
+    },
+    "expect": {
+      "request": {
+        "url": "https://ha.example.org/api/services/notify/mobile_app_pixel",
+        "json": {
+          "message": "hello",
+          "data": {
+            "push": {
+              "interruption-level": "active"
+            },
+            "tag": "60e05bd1b195af2f94112fa7197a5c88"
+          }
+        }
+      },
+      "result": {
+        "error": {
+          "kind": "auth_failed",
+          "message": "Home Assistant refused the access token (401)"
+        }
+      }
+    }
+  },
+  {
+    "name": "unknown-service",
+    "params": {
+      "url": "https://ha.example.org",
+      "service": "mobile_app_gone"
+    },
+    "intent": {
+      "type": "notify.push",
+      "body": "hello"
+    },
+    "response": {
+      "status": 404,
+      "body": {
+        "message": "synthetic: not found"
+      }
+    },
+    "expect": {
+      "request": {
+        "url": "https://ha.example.org/api/services/notify/mobile_app_gone",
+        "json": {
+          "message": "hello",
+          "data": {
+            "push": {
+              "interruption-level": "active"
+            },
+            "tag": "60e05bd1b195af2f94112fa7197a5c88"
+          }
+        }
+      },
+      "result": {
+        "error": {
+          "kind": "service_not_found",
+          "message": "Home Assistant has no such notify service (404)"
+        }
+      }
+    }
+  },
+  {
+    "name": "host-not-approved",
+    "params": {
+      "url": "https://other.example.org",
+      "service": "mobile_app_pixel"
+    },
+    "intent": {
+      "type": "notify.push",
+      "body": "hello"
+    },
+    "response": {
+      "status": 200,
+      "body": []
+    },
+    "expect": {
+      "request": null,
+      "result": {
+        "error": {
+          "kind": "config_invalid",
+          "message": "homeassistant.push parameter url: host other.example.org is not approved in horae.lock (permissions.network); nothing was sent"
+        }
+      }
+    }
+  }
+]
