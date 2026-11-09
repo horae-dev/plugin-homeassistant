@@ -50,16 +50,22 @@ _LOCALHOST = re.compile(r"(^|\.)localhost$")
 _UNSAFE_ESCAPES = ("%2e", "%2f", "%5c", "%25")
 
 
-def _invalid(name: str, why: str) -> SinkError:
-    return SinkError("config_invalid", f"homeassistant.push parameter {name}: {why}")
+def _invalid(name: str, why: str, entry: str = "homeassistant.push") -> SinkError:
+    return SinkError("config_invalid", f"{entry} parameter {name}: {why}")
 
 
 @dataclass(frozen=True)
-class Settings:
+class Server:
+    """The validated HA base URL, shared by the notifier and the reminders source."""
+
     base: str
     """`scheme://host[:port]`, no trailing slash."""
     scheme: Literal["https", "http"]
     host: str
+
+
+@dataclass(frozen=True)
+class Settings(Server):
     service: str
     priority: str
     link_prefix: str | None
@@ -75,35 +81,48 @@ class Settings:
         return f"{self.base}/notify.{self.service}"
 
 
-def _base(value: object, allow_http: bool) -> tuple[str, Literal["https", "http"], str]:
+def parse_server(url: object, allow_http: bool, *, name: str = "homeassistant.push") -> Server:
+    """The `url` / `allow_http` pair of an entry or a source call as a `Server`; a bad value is
+    `SinkError("config_invalid")` (the reminders source maps it to its own error)."""
+    if not isinstance(allow_http, bool):
+        raise _invalid("allow_http", "must be true or false", name)
+    base, scheme, host = _base(url, allow_http, name)
+    return Server(base, scheme, host)
+
+
+def _base(
+    value: object, allow_http: bool, name: str = "homeassistant.push"
+) -> tuple[str, Literal["https", "http"], str]:
     if not isinstance(value, str) or len(value) > 300:
-        raise _invalid("url", "must be an https:// URL")
+        raise _invalid("url", "must be an https:// URL", name)
     if not value.isascii() or any(ch <= " " or ch == "\x7f" for ch in value):
-        raise _invalid("url", "must be an https:// URL without spaces or controls")
+        raise _invalid("url", "must be an https:// URL without spaces or controls", name)
     try:
         parts = urlsplit(value)
         port = parts.port
     except ValueError:
-        raise _invalid("url", "is not a valid URL") from None
+        raise _invalid("url", "is not a valid URL", name) from None
     if parts.scheme == "http":
         if not allow_http:
-            raise _invalid("url", "is http://; set allow_http: true to accept it (LAN installs)")
+            raise _invalid(
+                "url", "is http://; set allow_http: true to accept it (LAN installs)", name
+            )
     elif parts.scheme != "https":
-        raise _invalid("url", "must be https:// (or http:// with allow_http: true)")
+        raise _invalid("url", "must be https:// (or http:// with allow_http: true)", name)
     host = parts.hostname or ""
     if "@" in parts.netloc or parts.query or parts.fragment or "#" in value or "?" in value:
-        raise _invalid("url", "has user info, a query or a fragment")
+        raise _invalid("url", "has user info, a query or a fragment", name)
     if parts.path not in ("", "/"):
-        raise _invalid("url", "has a path (give the base URL only)")
+        raise _invalid("url", "has a path (give the base URL only)", name)
     if parts.netloc != parts.netloc.lower() or not _HOST.fullmatch(host):
-        raise _invalid("url", "host must be a lowercase DNS name (no IP literal)")
+        raise _invalid("url", "host must be a lowercase DNS name (no IP literal)", name)
     if _LOCALHOST.search(host) or len(host) > 253:
-        raise _invalid("url", "host must not be localhost")
+        raise _invalid("url", "host must not be localhost", name)
     if port is not None and not 1 <= port <= 65535:
-        raise _invalid("url", "has an invalid port")
+        raise _invalid("url", "has an invalid port", name)
     netloc = host if port is None else f"{host}:{port}"
     if parts.netloc != netloc:
-        raise _invalid("url", "has an invalid port")
+        raise _invalid("url", "has an invalid port", name)
     scheme: Literal["https", "http"] = "https" if parts.scheme == "https" else "http"
     return f"{scheme}://{netloc}", scheme, host
 

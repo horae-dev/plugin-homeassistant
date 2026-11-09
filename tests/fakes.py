@@ -10,7 +10,7 @@ import httpx2
 
 from horae_homeassistant.http import Caller
 from horae_homeassistant.plugin import HomeAssistantNotifier
-from horae_homeassistant.settings import Settings
+from horae_homeassistant.settings import Server
 
 TOKEN = "eyJ.synthetic-ha-token_0123456789"  # noqa: S105 - a fake token, for tests only
 HOST = "ha.example.org"
@@ -26,7 +26,7 @@ class Recorder:
         self.requests: list[httpx2.Request] = []
         self.handler = handler or (lambda request: httpx2.Response(200, json=[]))
 
-    def __call__(self, settings: Settings) -> httpx2.AsyncBaseTransport:
+    def __call__(self, settings: Server) -> httpx2.AsyncBaseTransport:
         def handle(request: httpx2.Request) -> httpx2.Response:
             self.requests.append(request)
             answer = self.handler(request)
