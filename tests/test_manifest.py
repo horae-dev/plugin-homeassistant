@@ -63,14 +63,21 @@ def test_main_refuses_unknown_arguments() -> None:
         main(["--nope"])
 
 
-def test_version_is_0_1_0() -> None:
-    assert on_disk()["version"] == "0.1.0"
-    assert 'version = "0.1.0"' in (Path(__file__).parent.parent / "pyproject.toml").read_text()
+def test_version_is_0_2_0() -> None:
+    assert on_disk()["version"] == "0.2.0"
+    assert 'version = "0.2.0"' in (Path(__file__).parent.parent / "pyproject.toml").read_text()
 
 
 def test_permissions_are_the_least_the_notifier_needs() -> None:
-    """Applies `notify.push` (never proposes), one secret, no file; the HA host is operator
-    specific, so it is approved in horae.lock rather than declared here."""
+    """The notifier applies `notify.push`; the source proposes `task.create` and `notify.push`.
+    One secret (the same token), no file; the HA host is operator specific, so it is approved in
+    horae.lock rather than declared here."""
     document = on_disk()
-    assert document["provides"] == {"notifiers": ["homeassistant.push"]}
-    assert document["permissions"] == {"intents": ["notify.push"], "secrets": ["HA_TOKEN"]}
+    assert document["provides"] == {
+        "sources": ["homeassistant.reminders"],
+        "notifiers": ["homeassistant.push"],
+    }
+    assert document["permissions"] == {
+        "intents": ["notify.push", "task.create"],
+        "secrets": ["HA_TOKEN"],
+    }

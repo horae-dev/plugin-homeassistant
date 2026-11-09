@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """The plugin: `homeassistant.push`, a notifier that applies `notify.push` intents through a
-Home Assistant `notify` service.
+Home Assistant `notify` service, and `homeassistant.reminders`, a read-only source that proposes
+reminders from HA state (`horae_homeassistant.reminders`).
 
 The core's plugin host starts this module as an MCP server over stdio (`python -m
 horae_homeassistant`). A pipeline's `notify` step names `homeassistant.push: {...}` (its trusted
@@ -34,18 +35,22 @@ from typing import Any
 
 from horae_sdk import Applied, ApplyRequest, Notifier, Paths, Permissions, Plugin, SinkError
 
-from horae_homeassistant.http import Caller
+from horae_homeassistant.http import Caller, Reader
 from horae_homeassistant.message import is_obsidian, payload
+from horae_homeassistant.reminders import TOOL as REMINDERS_TOOL
+from horae_homeassistant.reminders import build_source
 from horae_homeassistant.settings import TOKEN_SECRET, Settings, parse
 
 NAME = "homeassistant"
 """The plugin's name, also the namespace of its refs (`homeassistant.push`)."""
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 TOOL = f"{NAME}.push"
 COMMAND = ["python3", "-m", "horae_homeassistant"]
 """`runtime.command` of `plugin.yaml`. When installing, pin an absolute interpreter that has
 this package (the host's `PATH` is fixed and its working directory empty)."""
-PERMISSIONS = Permissions(intents=["notify.push"], network=[], secrets=[TOKEN_SECRET])
+PERMISSIONS = Permissions(
+    intents=["notify.push", "task.create"], network=[], secrets=[TOKEN_SECRET]
+)
 """`notify.push` (applied, never proposed) and the access token. There is no default host: the
 operator's HA host is approved in `horae.lock` (README, "Setup"); `apply` refuses a host that
 is not in the approved list the core sends (horae-sdk 0.5)."""
@@ -106,15 +111,22 @@ class HomeAssistantNotifier(Notifier):
         return Applied(settings.target, details=details)
 
 
-def build(notifier: HomeAssistantNotifier | None = None) -> Plugin:
-    """The plugin, applying pushes through `notifier` (a default one when omitted)."""
+def build(
+    notifier: HomeAssistantNotifier | None = None,
+    reader: Reader | None = None,
+    *,
+    env: Mapping[str, str] | None = None,
+) -> Plugin:
+    """The plugin, applying pushes through `notifier` and reading HA with `reader` (defaults
+    when omitted)."""
     plugin = Plugin(
         NAME,
         version=VERSION,
         permissions=PERMISSIONS,
-        description="Sends Horae notifications through Home Assistant notify services.",
+        description="Home Assistant notifications and household reminders.",
     )
     plugin.add(notifier or HomeAssistantNotifier())
+    plugin.source(REMINDERS_TOOL)(build_source(reader, environ=env))
     return plugin
 
 

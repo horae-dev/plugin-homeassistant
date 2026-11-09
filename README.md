@@ -2,9 +2,13 @@
 
 # plugin-homeassistant
 
-Horae plugin: Home Assistant notifications. Version 0.1.0.
+Horae plugin: Home Assistant notifications and household reminders. Version 0.2.0.
 
 ## What it does
+
+Two tools: `homeassistant.push` (a notifier, below) and `homeassistant.reminders` (a read-only source, [further down](#household-reminders-source)).
+
+### `homeassistant.push`
 
 `homeassistant.push` is a **notifier**: a pipeline's `notify` step names it, the core routes each `notify.push` intent to it, and after the run the core applies the intent through the plugin's `homeassistant.apply` sink operation. The plugin calls your Home Assistant's `notify` service (`POST /api/services/notify/<service>`) with the intent's title, body and link, and the access token. It proposes nothing and writes no file. It can call **only `notify.*` services**.
 
@@ -45,7 +49,7 @@ plugins:
     permissions:
       network: [ha.example.org]
       secrets: [HA_TOKEN]
-      intents: [notify.push]
+      intents: [notify.push, task.create]
 ```
 
 `plugin.yaml` declares no host: yours is your own, so it is approved **per instance** in `horae.lock`. The core sends the approved `permissions.network` with every apply and the plugin refuses (`config_invalid`, naming the host, before reading the token or contacting anything) a `url` whose host is not in it; an `http://` URL is matched by its host name too, and any port is accepted. An older core sends no list, and the plugin then trusts the configured `url`.
@@ -77,12 +81,84 @@ All are `SinkError`s with fixed texts: the token, HA's answer and the button URL
 
 The target `<url>/notify.<service>` and `details`: `delivery: "sent"`, `priority`, `actions` (the number of buttons sent) and `click: "dropped"` where it applies.
 
+## Household reminders source
+
+`homeassistant.reminders` reads household state from your Home Assistant and proposes **reminders**: a `task.create` or a `notify.push` intent per matching entity, like `pack-reminders` does for the vault. Rules are **configured**, nothing is hard-coded. Examples: a battery under 20 %, the shopping to-do list not empty, a filter-change counter running out, a washer cycle done, a calendar's "bins tonight".
+
+**Read only towards HA.** The source can only `GET /api/states` and `GET /api/states/<entity_id>`. It never calls a service (no `todo.get_items`, no `notify`, no `light.turn_on`): the HTTP layer refuses any other method or path before it reaches the network (`ReadOnlyTransport`, tested), whatever the rules say. Home Assistant's REST API has no GET that lists a to-do list's items, so a `todo.*` entity is read like any other: its state is the number of items still to do. A `calendar.*` entity exposes its next event as attributes (`message`, `start_time`, `end_time`).
+
+```yaml
+# pipelines/home.yaml (excerpt)
+- collect:
+    - homeassistant.reminders:
+        url: https://ha.example.org          # required: the HA base URL (as for the notifier)
+        allow_http: false                    # true: accept an http:// url (LAN installs)
+        max_matches: 20                      # per glob rule, 1 to 50
+        max_items: 50                        # intents per call, 1 to 200
+        timezone: Europe/Paris               # the run's day (default UTC); `today: YYYY-MM-DD` pins it
+        rules:
+          - id: low-battery                  # required: a-z 0-9 -, unique, part of the key
+            entity: sensor.*_battery         # an entity id, or a glob (`*`, `?`) with a literal domain
+            when:                            # required, all must hold
+              - {below: 20}                  # the state, as a number
+            intent: task.create              # task.create (default) | notify.push
+            title: "Replace the battery of {name} ({state}{unit})"
+            due_in_days: 2                   # task.create: 0 (default) to 365, or null for none
+          - id: shopping
+            entity: todo.shopping
+            when: [{above: 0}]
+            title: "Shopping list: {state} items to buy"
+          - id: filter
+            entity: sensor.hvac_filter_days
+            when: [{below: 7}]
+            title: "Change the {name} ({state}{unit} left)"
+            due_in_days: 7
+          - id: washer
+            entity: binary_sensor.washer_done
+            when: [{equals: "on"}]
+            intent: notify.push
+            title: "{name}"
+            body: "The washer cycle is done"  # notify.push only; default: the title
+            repeat: daily                    # once (default) | daily
+          - id: bins
+            entity: calendar.bins
+            when:
+              - {equals: "on"}
+              - {attribute: message, present: true}
+            intent: notify.push
+            title: "{attr.message}"
+            repeat: daily
+- notify:
+    - homeassistant.push: {url: https://ha.example.org, service: mobile_app_pixel}
+```
+
+Any unknown key or invalid value fails the call (a tool error naming the rule and the key, never its value).
+
+| Rule key | Meaning |
+|---|---|
+| `id` | 1 to 32 of `a-z 0-9 -`, unique among the rules (at most 20). |
+| `entity` | An entity id (`sensor.door_battery`, one `GET /api/states/<id>`), or a glob over entity ids with a literal domain (`sensor.*_battery`, never `*.x`): one `GET /api/states` shared by every glob of the run. A glob keeps at most `max_matches` entities (the first by id); `truncated` in the result says more matched. |
+| `when` | 1 to 5 conditions, all must hold. Each has exactly one operator and, optionally, `attribute: <name>` (default: the entity's state). Operators: `equals`, `not_equals` (text, number or true/false), `in` (a list of texts), `below`, `above` (numbers), `present` (true/false, attributes only). A number is a JSON number or a plain decimal text (`18`, `-3.5`); `unavailable`, `unknown`, `1e5` or `nan` never satisfy `below` or `above`. |
+| `intent` | `task.create` (default) or `notify.push`. |
+| `title`, `body` | Templates (one line, at most 200 characters) over `{name}` (friendly name, else the entity id), `{state}`, `{unit}`, `{entity_id}` and `{attr.<name>}`. `body` is for `notify.push` and defaults to the title. |
+| `due_in_days` | `task.create` only: the due date, that many days after the run's day. |
+| `repeat` | `once` (default) or `daily`: see the key below. |
+
+**Key (deduplication).** Each reminder carries a stable key, the task's fingerprint or the push's `key`: `homeassistant:<rule id>:<entity id>`, plus `:<day>` with `repeat: daily` (a new reminder every day the condition still holds). The core dedupes on it: a `once` low battery is one task however many runs see it, and a `daily` push is sent once per day.
+
+**Untrusted text.** Entity names and attributes come from your devices and integrations, so they are data: controls, invisible and bidirectional formatting characters and line breaks are removed, `{{`, `{%`, `{#` are neutralised, each value is cut to 80 characters, and a task title is escaped by the SDK so a name cannot set a date, recurrence, priority, tag or link in Obsidian Tasks. Rule templates and ids are yours.
+
+**Result.** `day`, `rules`, `entities_read`, `matched` (rule, entity, cleaned name and state, intent and key), `truncated` and `degraded`. The intents travel as proposals; nothing from HA's answer beyond those fields is returned.
+
+**Failures.** A rule whose read fails for a reason about its entity or the answer is reported in `degraded` (`rule` and a fixed `reason`: `entity_not_found`, `response_too_large`, `response_invalid`) and the other rules still run. Any other failure stops the call with a tool error `homeassistant.reminders: <fixed text> (<reason>)`: `auth_failed` (401, 403), `rate_limited`, `server_unavailable`, `redirect_refused` (never followed), `request_refused`, `server_timeout`, `network_error`. HA's answer, the URL and the token are never in a result, an error or a log. It uses the notifier's client posture: no ambient proxy, TLS verified, connect 5 s / read 10 s, 30 s for the whole call, answers capped (4 MiB for all states, 64 KiB for one), no retry. The host must be approved in `horae.lock`, as for the notifier.
+
 ## Permissions
 
 | Kind | Value | Why |
 |---|---|---|
-| intents | `notify.push` | applied, never proposed |
-| secrets | `HA_TOKEN` | the long-lived access token, sent as a Bearer header to the configured host only |
+| intents | `notify.push` | applied by the notifier; proposed by the reminders source |
+| intents | `task.create` | proposed by the reminders source |
+| secrets | `HA_TOKEN` | the long-lived access token (the same for both tools), sent as a Bearer header to the configured host only |
 | network | none in the manifest; your HA host approved in `horae.lock` | see above |
 | paths | none | |
 
@@ -90,9 +166,9 @@ The target `<url>/notify.<service>` and `details`: `delivery: "sent"`, `priority
 
 Until M4's `horae plugin add`, pin the commit in `horae.lock` with the permissions above, install the package into an interpreter, and set `runtime.command` to that absolute interpreter (`["/opt/horae-plugins/homeassistant/bin/python", "-m", "horae_homeassistant"]`, horae-sdk README, "The command").
 
-## Not in 0.1.0
+## Not in 0.2.0
 
-Quiet hours and once-a-day reminder state (the core's `key` dedupe covers repeated pushes), event-firing companion actions, notification channels, images and TTS. See the [CHANGELOG](CHANGELOG.md).
+Reading a to-do list's items or a calendar's event list (HA offers them only through services or the WebSocket API, which this plugin does not use), quiet hours and once-a-day reminder state (the core's `key` dedupe covers repeated pushes), event-firing companion actions, notification channels, images and TTS. See the [CHANGELOG](CHANGELOG.md).
 
 ## Development
 
@@ -104,7 +180,7 @@ uv lock --check && uv run ruff check && uv run ruff format --check && uv run myp
 uv run python -m horae_homeassistant --manifest > plugin.yaml   # after changing tools or permissions
 ```
 
-Tests replay a recorded Home Assistant API (`tests/fixtures/ha_api.json`) through an in-memory HTTP transport: no real HA instance, no network. `HORAE_SDK_RECORD=1 uv run pytest` rewrites the expected requests (review the diff; refused in CI).
+Tests replay recorded Home Assistant APIs (`tests/fixtures/ha_api.json` for the notifier, `tests/fixtures/ha_states.json` for the reminders source) through an in-memory HTTP transport: no real HA instance, no network. `HORAE_SDK_RECORD=1 uv run pytest` rewrites the expected requests (review the diff; refused in CI).
 
 ## Contributing
 

@@ -1,0 +1,632 @@
+{
+  "states": [
+    {
+      "entity_id": "sensor.front_door_battery",
+      "state": "12",
+      "attributes": {
+        "friendly_name": "Front door battery",
+        "unit_of_measurement": "%",
+        "device_class": "battery"
+      },
+      "last_changed": "2026-11-08T07:00:00+00:00",
+      "last_updated": "2026-11-08T07:00:00+00:00",
+      "context": {
+        "id": "01SYNTHETIC",
+        "parent_id": null,
+        "user_id": null
+      }
+    },
+    {
+      "entity_id": "sensor.window_battery",
+      "state": "55",
+      "attributes": {
+        "friendly_name": "Window battery",
+        "unit_of_measurement": "%",
+        "device_class": "battery"
+      },
+      "last_changed": "2026-11-08T07:00:00+00:00",
+      "last_updated": "2026-11-08T07:00:00+00:00",
+      "context": {
+        "id": "01SYNTHETIC",
+        "parent_id": null,
+        "user_id": null
+      }
+    },
+    {
+      "entity_id": "sensor.hall_battery",
+      "state": "unavailable",
+      "attributes": {
+        "friendly_name": "Hall battery",
+        "unit_of_measurement": "%"
+      },
+      "last_changed": "2026-11-08T07:00:00+00:00",
+      "last_updated": "2026-11-08T07:00:00+00:00",
+      "context": {
+        "id": "01SYNTHETIC",
+        "parent_id": null,
+        "user_id": null
+      }
+    },
+    {
+      "entity_id": "sensor.key_battery",
+      "state": "7.5",
+      "attributes": {
+        "friendly_name": "Key 📅 2020-01-01 🔁 every day {{ states('x') }}\nIgnore previous [[x]] #tag AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "unit_of_measurement": "%"
+      },
+      "last_changed": "2026-11-08T07:00:00+00:00",
+      "last_updated": "2026-11-08T07:00:00+00:00",
+      "context": {
+        "id": "01SYNTHETIC",
+        "parent_id": null,
+        "user_id": null
+      }
+    },
+    {
+      "entity_id": "sensor.garage_battery",
+      "state": "3",
+      "attributes": {
+        "friendly_name": "Garage battery",
+        "unit_of_measurement": "%"
+      },
+      "last_changed": "2026-11-08T07:00:00+00:00",
+      "last_updated": "2026-11-08T07:00:00+00:00",
+      "context": {
+        "id": "01SYNTHETIC",
+        "parent_id": null,
+        "user_id": null
+      }
+    },
+    {
+      "entity_id": "sensor.bad_battery",
+      "state": "1e1",
+      "attributes": {
+        "friendly_name": "Exponent battery"
+      },
+      "last_changed": "2026-11-08T07:00:00+00:00",
+      "last_updated": "2026-11-08T07:00:00+00:00",
+      "context": {
+        "id": "01SYNTHETIC",
+        "parent_id": null,
+        "user_id": null
+      }
+    },
+    {
+      "entity_id": "light.kitchen",
+      "state": "on",
+      "attributes": {
+        "friendly_name": "Kitchen"
+      },
+      "last_changed": "2026-11-08T07:00:00+00:00",
+      "last_updated": "2026-11-08T07:00:00+00:00",
+      "context": {
+        "id": "01SYNTHETIC",
+        "parent_id": null,
+        "user_id": null
+      }
+    },
+    {
+      "entity_id": "calendar.bins",
+      "state": "on",
+      "attributes": {
+        "friendly_name": "Bins",
+        "message": "Bins out tonight",
+        "start_time": "2026-11-09 18:00:00",
+        "end_time": "2026-11-09 20:00:00",
+        "all_day": false
+      },
+      "last_changed": "2026-11-08T07:00:00+00:00",
+      "last_updated": "2026-11-08T07:00:00+00:00",
+      "context": {
+        "id": "01SYNTHETIC",
+        "parent_id": null,
+        "user_id": null
+      }
+    },
+    {
+      "entity_id": "todo.shopping",
+      "state": "3",
+      "attributes": {
+        "friendly_name": "Shopping"
+      },
+      "last_changed": "2026-11-08T07:00:00+00:00",
+      "last_updated": "2026-11-08T07:00:00+00:00",
+      "context": {
+        "id": "01SYNTHETIC",
+        "parent_id": null,
+        "user_id": null
+      }
+    },
+    {
+      "entity_id": "sensor.hvac_filter_days",
+      "state": "4",
+      "attributes": {
+        "friendly_name": "HVAC filter",
+        "unit_of_measurement": "d",
+        "replace_at": 30
+      },
+      "last_changed": "2026-11-08T07:00:00+00:00",
+      "last_updated": "2026-11-08T07:00:00+00:00",
+      "context": {
+        "id": "01SYNTHETIC",
+        "parent_id": null,
+        "user_id": null
+      }
+    },
+    {
+      "entity_id": "binary_sensor.washer_done",
+      "state": "on",
+      "attributes": {
+        "friendly_name": "Washer cycle done"
+      },
+      "last_changed": "2026-11-08T07:00:00+00:00",
+      "last_updated": "2026-11-08T07:00:00+00:00",
+      "context": {
+        "id": "01SYNTHETIC",
+        "parent_id": null,
+        "user_id": null
+      }
+    },
+    {
+      "entity_id": "binary_sensor.dryer_done",
+      "state": "off",
+      "attributes": {
+        "friendly_name": "Dryer cycle done"
+      },
+      "last_changed": "2026-11-08T07:00:00+00:00",
+      "last_updated": "2026-11-08T07:00:00+00:00",
+      "context": {
+        "id": "01SYNTHETIC",
+        "parent_id": null,
+        "user_id": null
+      }
+    }
+  ],
+  "cases": [
+    {
+      "name": "low-batteries-glob",
+      "params": {
+        "url": "https://ha.example.org",
+        "rules": [
+          {
+            "id": "low-battery",
+            "entity": "sensor.*_battery",
+            "when": [
+              {
+                "below": 20
+              }
+            ],
+            "title": "Replace the battery of {name} ({state}{unit})",
+            "due_in_days": 2
+          }
+        ]
+      },
+      "api": {},
+      "today": "2026-11-09",
+      "expect": {
+        "requests": [
+          {
+            "method": "GET",
+            "path": "/api/states",
+            "query": ""
+          }
+        ],
+        "data": {
+          "day": "2026-11-09",
+          "rules": 1,
+          "entities_read": 6,
+          "matched": [
+            {
+              "rule": "low-battery",
+              "entity_id": "sensor.front_door_battery",
+              "name": "Front door battery",
+              "state": "12",
+              "intent": "task.create",
+              "key": "homeassistant:low-battery:sensor.front_door_battery"
+            },
+            {
+              "rule": "low-battery",
+              "entity_id": "sensor.garage_battery",
+              "name": "Garage battery",
+              "state": "3",
+              "intent": "task.create",
+              "key": "homeassistant:low-battery:sensor.garage_battery"
+            },
+            {
+              "rule": "low-battery",
+              "entity_id": "sensor.key_battery",
+              "name": "Key 📅 2020-01-01 🔁 every day { { states('x') }} Ignore previous [[x]] #tag AAAA…",
+              "state": "7.5",
+              "intent": "task.create",
+              "key": "homeassistant:low-battery:sensor.key_battery"
+            }
+          ],
+          "truncated": false,
+          "degraded": []
+        },
+        "intents": [
+          {
+            "type": "task.create",
+            "title": "Replace the battery of Front door battery \\(12\\%\\)",
+            "fingerprint": "homeassistant:low-battery:sensor.front_door_battery",
+            "due": "2026-11-11"
+          },
+          {
+            "type": "task.create",
+            "title": "Replace the battery of Garage battery \\(3\\%\\)",
+            "fingerprint": "homeassistant:low-battery:sensor.garage_battery",
+            "due": "2026-11-11"
+          },
+          {
+            "type": "task.create",
+            "title": "Replace the battery of Key &#x1F4C5; 2020-01-01 &#x1F501; every day \\{ \\{ states\\('x'\\) \\}\\} Ignore previous \\[\\[x\\]\\] \\#tag AAAA… \\(7.5\\%\\)",
+            "fingerprint": "homeassistant:low-battery:sensor.key_battery",
+            "due": "2026-11-11"
+          }
+        ]
+      }
+    },
+    {
+      "name": "bins-calendar-push",
+      "params": {
+        "url": "https://ha.example.org",
+        "rules": [
+          {
+            "id": "bins",
+            "entity": "calendar.bins",
+            "when": [
+              {
+                "equals": "on"
+              },
+              {
+                "attribute": "message",
+                "present": true
+              }
+            ],
+            "intent": "notify.push",
+            "title": "{attr.message}",
+            "body": "{name}: {attr.message} ({attr.start_time})",
+            "repeat": "daily"
+          }
+        ]
+      },
+      "api": {},
+      "today": "2026-11-09",
+      "expect": {
+        "requests": [
+          {
+            "method": "GET",
+            "path": "/api/states/calendar.bins",
+            "query": ""
+          }
+        ],
+        "data": {
+          "day": "2026-11-09",
+          "rules": 1,
+          "entities_read": 1,
+          "matched": [
+            {
+              "rule": "bins",
+              "entity_id": "calendar.bins",
+              "name": "Bins",
+              "state": "on",
+              "intent": "notify.push",
+              "key": "homeassistant:bins:calendar.bins:2026-11-09"
+            }
+          ],
+          "truncated": false,
+          "degraded": []
+        },
+        "intents": [
+          {
+            "type": "notify.push",
+            "body": "Bins: Bins out tonight (2026-11-09 18:00:00)",
+            "title": "Bins out tonight",
+            "key": "homeassistant:bins:calendar.bins:2026-11-09"
+          }
+        ]
+      }
+    },
+    {
+      "name": "todo-filter-and-appliance",
+      "params": {
+        "url": "https://ha.example.org",
+        "rules": [
+          {
+            "id": "shopping",
+            "entity": "todo.shopping",
+            "when": [
+              {
+                "above": 0
+              }
+            ],
+            "title": "Shopping list: {state} items to buy",
+            "due_in_days": 0
+          },
+          {
+            "id": "filter",
+            "entity": "sensor.hvac_filter_days",
+            "when": [
+              {
+                "below": 7
+              }
+            ],
+            "title": "Change the {name} ({state}{unit} left)",
+            "due_in_days": 7
+          },
+          {
+            "id": "washer",
+            "entity": "binary_sensor.washer_done",
+            "when": [
+              {
+                "equals": "on"
+              }
+            ],
+            "intent": "notify.push",
+            "title": "{name}",
+            "repeat": "daily"
+          },
+          {
+            "id": "dryer",
+            "entity": "binary_sensor.dryer_done",
+            "when": [
+              {
+                "in": [
+                  "on",
+                  "paused"
+                ]
+              }
+            ],
+            "intent": "notify.push",
+            "title": "{name}"
+          }
+        ]
+      },
+      "api": {},
+      "today": "2026-11-09",
+      "expect": {
+        "requests": [
+          {
+            "method": "GET",
+            "path": "/api/states/todo.shopping",
+            "query": ""
+          },
+          {
+            "method": "GET",
+            "path": "/api/states/sensor.hvac_filter_days",
+            "query": ""
+          },
+          {
+            "method": "GET",
+            "path": "/api/states/binary_sensor.washer_done",
+            "query": ""
+          },
+          {
+            "method": "GET",
+            "path": "/api/states/binary_sensor.dryer_done",
+            "query": ""
+          }
+        ],
+        "data": {
+          "day": "2026-11-09",
+          "rules": 4,
+          "entities_read": 4,
+          "matched": [
+            {
+              "rule": "shopping",
+              "entity_id": "todo.shopping",
+              "name": "Shopping",
+              "state": "3",
+              "intent": "task.create",
+              "key": "homeassistant:shopping:todo.shopping"
+            },
+            {
+              "rule": "filter",
+              "entity_id": "sensor.hvac_filter_days",
+              "name": "HVAC filter",
+              "state": "4",
+              "intent": "task.create",
+              "key": "homeassistant:filter:sensor.hvac_filter_days"
+            },
+            {
+              "rule": "washer",
+              "entity_id": "binary_sensor.washer_done",
+              "name": "Washer cycle done",
+              "state": "on",
+              "intent": "notify.push",
+              "key": "homeassistant:washer:binary_sensor.washer_done:2026-11-09"
+            }
+          ],
+          "truncated": false,
+          "degraded": []
+        },
+        "intents": [
+          {
+            "type": "task.create",
+            "title": "Shopping list: 3 items to buy",
+            "fingerprint": "homeassistant:shopping:todo.shopping",
+            "due": "2026-11-09"
+          },
+          {
+            "type": "task.create",
+            "title": "Change the HVAC filter \\(4d left\\)",
+            "fingerprint": "homeassistant:filter:sensor.hvac_filter_days",
+            "due": "2026-11-16"
+          },
+          {
+            "type": "notify.push",
+            "body": "Washer cycle done",
+            "title": "Washer cycle done",
+            "key": "homeassistant:washer:binary_sensor.washer_done:2026-11-09"
+          }
+        ]
+      }
+    },
+    {
+      "name": "missing-entity-degrades-one-rule",
+      "params": {
+        "url": "https://ha.example.org",
+        "rules": [
+          {
+            "id": "gone",
+            "entity": "sensor.removed",
+            "when": [
+              {
+                "below": 5
+              }
+            ],
+            "title": "x"
+          },
+          {
+            "id": "washer",
+            "entity": "binary_sensor.washer_done",
+            "when": [
+              {
+                "equals": "on"
+              }
+            ],
+            "title": "Empty the washer"
+          }
+        ]
+      },
+      "api": {},
+      "today": "2026-11-09",
+      "expect": {
+        "requests": [
+          {
+            "method": "GET",
+            "path": "/api/states/sensor.removed",
+            "query": ""
+          },
+          {
+            "method": "GET",
+            "path": "/api/states/binary_sensor.washer_done",
+            "query": ""
+          }
+        ],
+        "data": {
+          "day": "2026-11-09",
+          "rules": 2,
+          "entities_read": 1,
+          "matched": [
+            {
+              "rule": "washer",
+              "entity_id": "binary_sensor.washer_done",
+              "name": "Washer cycle done",
+              "state": "on",
+              "intent": "task.create",
+              "key": "homeassistant:washer:binary_sensor.washer_done"
+            }
+          ],
+          "truncated": false,
+          "degraded": [
+            {
+              "rule": "gone",
+              "reason": "entity_not_found"
+            }
+          ]
+        },
+        "intents": [
+          {
+            "type": "task.create",
+            "title": "Empty the washer",
+            "fingerprint": "homeassistant:washer:binary_sensor.washer_done",
+            "due": "2026-11-09"
+          }
+        ]
+      }
+    },
+    {
+      "name": "glob-cap",
+      "params": {
+        "url": "https://ha.example.org",
+        "max_matches": 2,
+        "rules": [
+          {
+            "id": "low-battery",
+            "entity": "sensor.*_battery",
+            "when": [
+              {
+                "below": 20
+              }
+            ],
+            "title": "Battery {name}"
+          }
+        ]
+      },
+      "api": {},
+      "today": "2026-11-09",
+      "expect": {
+        "requests": [
+          {
+            "method": "GET",
+            "path": "/api/states",
+            "query": ""
+          }
+        ],
+        "data": {
+          "day": "2026-11-09",
+          "rules": 1,
+          "entities_read": 2,
+          "matched": [
+            {
+              "rule": "low-battery",
+              "entity_id": "sensor.front_door_battery",
+              "name": "Front door battery",
+              "state": "12",
+              "intent": "task.create",
+              "key": "homeassistant:low-battery:sensor.front_door_battery"
+            }
+          ],
+          "truncated": true,
+          "degraded": []
+        },
+        "intents": [
+          {
+            "type": "task.create",
+            "title": "Battery Front door battery",
+            "fingerprint": "homeassistant:low-battery:sensor.front_door_battery",
+            "due": "2026-11-09"
+          }
+        ]
+      }
+    },
+    {
+      "name": "token-refused",
+      "params": {
+        "url": "https://ha.example.org",
+        "rules": [
+          {
+            "id": "washer",
+            "entity": "binary_sensor.washer_done",
+            "when": [
+              {
+                "equals": "on"
+              }
+            ],
+            "title": "x"
+          }
+        ]
+      },
+      "api": {
+        "/api/states/binary_sensor.washer_done": {
+          "status": 401,
+          "body": {
+            "message": "401: Unauthorized secret-body-text"
+          }
+        }
+      },
+      "today": "2026-11-09",
+      "expect": {
+        "requests": [
+          {
+            "method": "GET",
+            "path": "/api/states/binary_sensor.washer_done",
+            "query": ""
+          }
+        ],
+        "error": "homeassistant.reminders: Home Assistant refused the access token (auth_failed)"
+      }
+    }
+  ]
+}

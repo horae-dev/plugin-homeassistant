@@ -2,12 +2,14 @@
 # tests/test_manifest.py checks it is what the SDK writes. When installing, pin runtime.command
 # to an absolute interpreter that has this package (horae-sdk README, "The command").
 name: homeassistant
-version: 0.1.0
+version: 0.2.0
 horae: '>=0,<0.2'
-description: Sends Horae notifications through Home Assistant notify services.
+description: Home Assistant notifications and household reminders.
 license: Apache-2.0
 homepage: https://github.com/horae-dev/plugin-homeassistant
 provides:
+  sources:
+  - homeassistant.reminders
   notifiers:
   - homeassistant.push
 permissions:
@@ -15,6 +17,7 @@ permissions:
   - HA_TOKEN
   intents:
   - notify.push
+  - task.create
 runtime:
   protocol: mcp-stdio
   command:
