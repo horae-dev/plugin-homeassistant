@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.2
+
+- Install with `horae plugin add`: `horae-sdk` 0.9 from PyPI (`>=0.9,<0.10`, hashed in
+  `uv.lock`) instead of a git commit of the core's `main`, which the core installer refuses; no
+  `exclude-newer` in `[tool.uv]`, which `uv sync --locked --no-config` ignores so the lock would
+  not match (horae-dev/horae#199). Renovate's `minimumReleaseAge` keeps the 7-day cooldown.
+- **Permissions:** none new.
+
 ## 0.2.1
 
 - A Home Assistant on the LAN is approved through `permissions.network_local` (horae-sdk 0.6,
