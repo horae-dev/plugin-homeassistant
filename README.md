@@ -2,7 +2,7 @@
 
 # plugin-homeassistant
 
-Horae plugin: Home Assistant notifications and household reminders. Version 0.2.1 (requires `horae-sdk` 0.6).
+Horae plugin: Home Assistant notifications and household reminders. Version 0.2.2 (requires `horae-sdk` 0.9).
 
 ## What it does
 
@@ -189,13 +189,13 @@ Any unknown key or invalid value fails the call (a tool error naming the rule an
 
 Until M4's `horae plugin add`, pin the commit in `horae.lock` with the permissions above, install the package into an interpreter, and set `runtime.command` to that absolute interpreter (`["/opt/horae-plugins/homeassistant/bin/python", "-m", "horae_homeassistant"]`, horae-sdk README, "The command").
 
-## Not in 0.2.1
+## Not in 0.2.2
 
 Reading a to-do list's items or a calendar's event list (HA offers them only through services or the WebSocket API, which this plugin does not use), quiet hours and once-a-day reminder state (the core's `key` dedupe covers repeated pushes), event-firing companion actions, notification channels, images and TTS. See the [CHANGELOG](CHANGELOG.md).
 
 ## Development
 
-The repository was scaffolded from [`template-plugin`](https://github.com/horae-dev/template-plugin): an MCP stdio server built on [`horae-sdk`](https://github.com/horae-dev/horae/tree/main/sdk), a `plugin.yaml` generated from the code, and CI (lockfile, ruff, mypy strict, pytest with an 85% coverage gate, gitleaks, and the aggregate **CI OK** check). `horae-sdk` is not on PyPI yet: `pyproject.toml` takes it from the core repository's `main` and `uv.lock` pins the commit.
+The repository was scaffolded from [`template-plugin`](https://github.com/horae-dev/template-plugin): an MCP stdio server built on [`horae-sdk`](https://github.com/horae-dev/horae/tree/main/sdk), a `plugin.yaml` generated from the code, and CI (lockfile, ruff, mypy strict, pytest with an 85% coverage gate, gitleaks, and the aggregate **CI OK** check). `horae-sdk` comes from PyPI, pinned with hashes by `uv.lock`; Renovate waits 7 days before proposing a new release (`minimumReleaseAge`).
 
 ```
 uv sync

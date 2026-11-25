@@ -45,7 +45,7 @@ from horae_homeassistant.settings import TOKEN_SECRET, Settings, approval, parse
 
 NAME = "homeassistant"
 """The plugin's name, also the namespace of its refs (`homeassistant.push`)."""
-VERSION = "0.2.1"
+VERSION = "0.2.2"
 TOOL = f"{NAME}.push"
 COMMAND = ["python3", "-m", "horae_homeassistant"]
 """`runtime.command` of `plugin.yaml`. When installing, pin an absolute interpreter that has
