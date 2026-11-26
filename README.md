@@ -2,7 +2,9 @@
 
 # plugin-homeassistant
 
-Horae plugin: Home Assistant notifications and household reminders. Version 0.2.2 (requires `horae-sdk` 0.9).
+Horae plugin: Home Assistant notifications and household reminders. Version 0.2.2 (requires `horae-sdk` 0.9), listed in the [marketplace](https://github.com/horae-dev/marketplace).
+
+**Docs:** <https://horae-dev.github.io/docs/plugins/homeassistant/>
 
 ## What it does
 
@@ -187,7 +189,13 @@ Any unknown key or invalid value fails the call (a tool error naming the rule an
 
 ## Install
 
-Until M4's `horae plugin add`, pin the commit in `horae.lock` with the permissions above, install the package into an interpreter, and set `runtime.command` to that absolute interpreter (`["/opt/horae-plugins/homeassistant/bin/python", "-m", "horae_homeassistant"]`, horae-sdk README, "The command").
+```sh
+horae plugin add homeassistant@0.2.2 --allow-host ha.example.org
+# or, on the LAN over http:
+horae plugin add homeassistant@0.2.2 --allow-local homeassistant.local:8123
+```
+
+`horae plugin add` shows the permissions above, approves your HA host and pins the commit in `horae.lock`. Store the long-lived access token as the `HA_TOKEN` secret.
 
 ## Not in 0.2.2
 
